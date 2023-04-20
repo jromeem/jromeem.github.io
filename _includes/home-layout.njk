@@ -31,7 +31,11 @@
         &gt; <a class="colorMe" href="/monumental-you">Monumental You</a>, projection mapping installation for UNESCO/SXSW Media Exhibition (2019) <br>
       </p>
       <h2>thoughts / writing</h2>
-      <p>&gt; <a href="/posts/2023-04-19-this-is-a-new-post/">this is a new post</a> <br></p>
+      <p>
+        {%- for post in collections.post -%}
+          &gt; <a href="{{ post.url }}">{{ post.data.title }}</a> <br>
+        {%- endfor -%}
+      </p>
       <h2>small / random</h2>
       <p>
         &gt; <a class="colorMe" target="_blank" href="https://vimeo.com/196509630">dadageek::processing</a>, an introductory course to Processing and creative coding (2016) <br>

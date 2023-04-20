@@ -1,4 +1,4 @@
 ---
-layout: mylayout.njk
-title: My Rad Markdown Blog Post
+layout: home-layout.njk
+title: jerome martinez
 ---
