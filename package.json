@@ -5,13 +5,16 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "serve": "npx @11ty/eleventy --serve",
-    "new-post": "touch"
+    "clean": "rimraf _site",
+    "serve": "npm run clean && localhost 8080 && eleventy --serve",
+    "build": "npm run clean && eleventy --input=. --output=./_site",
+    "post": "hygen 11ty-gen new"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@11ty/eleventy": "^2.0.0"
+    "@11ty/eleventy": "^2.0.0",
+    "rimraf": "^5.0.0"
   }
 }
