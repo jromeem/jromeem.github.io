@@ -3,7 +3,7 @@ to: posts/<%=`${(new Date()).toISOString().slice(0, 10)}-${name.toLowerCase().re
 ---
 ---
 layout: post-layout.njk
-tags: ['post']
+tags: ['project']
 title: <%=name%>
 ---
 this is the post content
