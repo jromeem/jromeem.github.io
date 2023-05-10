@@ -2,7 +2,7 @@ name: Build Eleventy
 on:
   push:
     branches:
-      - gh-pages
+      - main
 
 jobs:
   build:
@@ -33,4 +33,4 @@ jobs:
           publish_dir: ./_site
           #publish_branch is the branch in the repository.
           #this is where you need to point GitHub pages
-          publish_branch: gh-pages
+          publish_branch: main
