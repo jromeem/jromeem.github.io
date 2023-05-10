@@ -10,7 +10,9 @@ let colorMode;
 
 function setup() {
   let greetings = select('#greetings');
-  greetings.html(generateGreetings());
+  if (greetings) {
+    greetings.html(generateGreetings());
+  }
 
   let links = selectAll(".colorMe");
   let linkColors = shuffle(palette);
