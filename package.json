@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "rimraf _site",
     "serve": "npm run clean && localhost 8080 && eleventy --serve",
-    "build": "npm run clean && eleventy --input=. --output=./_site",
+    "build": "eleventy --input=. --output=./_site",
     "post": "hygen 11ty-gen new"
   },
   "keywords": [],
