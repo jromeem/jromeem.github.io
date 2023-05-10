@@ -18,5 +18,5 @@ Spirits is an interactive installation that combines projection mapping and live
 ![alt text](/assets/img/spirits/1.jpg "Title")
 ![alt text](/assets/img/spirits/2.jpg "Title")
 ![alt text](/assets/img/spirits/3.jpg "Title")
-![alt text](/assets/img/spirits/4.jpg "Title")
-![alt text](/assets/img/spirits/5.jpg "Title")
+![alt text](/assets/img/spirits/four.jpg "Title")
+![alt text](/assets/img/spirits/five.jpg "Title")
