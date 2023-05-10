@@ -114,3 +114,20 @@ a:hover {
 b, strong {
   font-family: VictorMonoB;
 }
+
+/* Add these media queries at the bottom of your CSS file */
+
+/* For mobile devices with max-width 768px */
+@media screen and (max-width: 768px) {
+  body {
+    overflow: auto; /* Allow vertical scrolling if content height exceeds viewport */
+  }
+
+  main#p5sketch {
+    display: none; /* Hide the p5 sketch */
+  }
+
+  div.block {
+    width: 100%; /* Make the block content take up the whole screen width */
+  }
+}
