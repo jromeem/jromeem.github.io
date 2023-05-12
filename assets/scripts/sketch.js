@@ -10,6 +10,26 @@ let colorMode;
 let buffer;
 let cachedImage;
 
+function initParams() {
+  if (random() < 3/4) {
+    shuffle(possibilities, true);
+    possibilities.pop();
+  }
+  colorMode = random([0, 1]);
+  N = random([10, 7, 3]);
+  s = windowHeight/N;
+  M = N;
+  while (M*s + 400 > windowWidth) M--;
+}
+
+function generateGreetings() {
+  let word1 = random(["Hey", "Hi", "Hello"]);
+  let word2 = random(["", " there"]);
+  let punctuation = random(["!", " :)"]);
+  let lenguas = random(["こんにちは!", "Ciao!", "Hola!", "Bonjour!", "안녕하세요!"])
+  return random([word1+word2+punctuation, lenguas]);
+}
+
 function makeGreeting() {
   let greetings = select('#greetings');
   if (greetings) {
@@ -27,6 +47,22 @@ function colorLinks() {
 
 function saveToLocalStorage(key, value) {
   localStorage.setItem(key, buffer.canvas.toDataURL());
+}
+
+// returns a dataURL
+function createBufferImageDataURL() {
+  for (let i = 0; i < windowWidth/M; i++) {
+    for (let j = 0; j < windowHeight/N; j++) {
+      buffer.fill(random(palette));
+      makeTile(buffer, i*s, j*s);
+    }
+  }
+  return {dataURL: buffer.canvas.toDataURL(), buffer: buffer};
+}
+
+function windowResized() {
+  initParams();
+  resizeCanvas(M*s, N*s-1);
 }
 
 function preload() {
@@ -56,44 +92,8 @@ function setup() {
   noLoop();
 }
 
-// returns a dataURL
-function createBufferImageDataURL() {
-  for (let i = 0; i < windowWidth/M; i++) {
-    for (let j = 0; j < windowHeight/N; j++) {
-      buffer.fill(random(palette));
-      makeTile(buffer, i*s, j*s);
-    }
-  }
-  return {dataURL: buffer.canvas.toDataURL(), buffer: buffer};
-}
-
 function draw() {
   image(cachedImage, 0, 0, windowWidth, windowHeight);
-}
-
-function initParams() {
-  if (random() < 3/4) {
-    shuffle(possibilities, true);
-    possibilities.pop();
-  }
-  colorMode = random([0, 1]);
-  N = random([10, 7, 3]);
-  s = windowHeight/N;
-  M = N;
-  while (M*s + 400 > windowWidth) M--;
-}
-
-function generateGreetings() {
-  let word1 = random(["Hey", "Hi", "Hello"]);
-  let word2 = random(["", " there"]);
-  let punctuation = random(["!", " :)"]);
-  let lenguas = random(["こんにちは!", "Ciao!", "Hola!", "Bonjour!", "안녕하세요!"])
-  return random([word1+word2+punctuation, lenguas]);
-}
-
-function windowResized() {
-  initParams();
-  resizeCanvas(M*s, N*s-1);
 }
 
 function makeTile(buffer, x, y) {
