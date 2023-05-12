@@ -45,8 +45,8 @@ function colorLinks() {
   }
 }
 
-function saveToLocalStorage(key, value) {
-  localStorage.setItem(key, buffer.canvas.toDataURL());
+function saveToSessionStorage(key, value) {
+  sessionStorage.setItem(key, value);
 }
 
 // returns a dataURL
@@ -66,7 +66,7 @@ function windowResized() {
 }
 
 function preload() {
-  let base64Image = localStorage.getItem('buffer');
+  let base64Image = sessionStorage.getItem('buffer');
   if (base64Image) {
     console.log("here");
     // Load the image from the base64 string
@@ -79,8 +79,8 @@ function preload() {
     buffer = createGraphics(windowWidth, windowHeight);
     buffer.noStroke();
     data = createBufferImageDataURL();
-    saveToLocalStorage('buffer', data.dataURL);
-    cachedImage = createBufferImageDataURL().buffer;
+    saveToSessionStorage('buffer', data.dataURL);
+    cachedImage = data.buffer;
   }
 }
 
