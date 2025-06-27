@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Planet Movement with Collision Detection</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #000011;
+            font-family: Arial, sans-serif;
+        }
+
+        #gameContainer {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #instructions {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            z-index: 100;
+        }
+
+        #instructions h3 {
+            margin: 0 0 10px 0;
+        }
+
+        #instructions p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="gameContainer">
+        <div id="instructions">
+            <h3>3D Planet Movement with Collision Detection</h3>
+            <p><strong>WASD</strong> - Roll the planet</p>
+            <p>Try not to hit the tree trunks!</p>
+            <p>Roll over slimes to squish them!</p>
+            <p id="squishCounter"><strong>Slimes Squished: 0</strong></p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Game variables
+        let scene, camera, renderer, planet, player, slime;
+        let keys = {};
+        const maxMoveSpeed = 0.025;
+        const acceleration = 0.001;
+        const deceleration = 0.80;
+        let currentVelocity = { x: 0, y: 0 }; // Current movement velocity
+        const planetRadius = 10;
+        const trees = [];
+        const treeTrunks = []; // Store trunk positions for collision detection
+        const grass = [];
+        const squishSpeed = 0.02; // Minimum speed required to squish a slime
+        const slimesToRemove = []; // Track slimes that need to be removed after melting
+        let slimeBounceTime = 0;
+
+        const slimes = []; // Array to hold all slimes
+        let slimeSpawnTimer = 0;
+        const slimeSpawnInterval = 300; // Spawn every 300 frames (about 5 seconds at 60fps)
+        const maxSlimes = 5; // Maximum number of slimes
+        let nextSlimeId = 0; // Unique ID counter for slimes
+
+        let squishCount = 0;
+
+        // Initialize the game
+        function init() {
+            // Create scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000011); // Dark space background
+
+            // Create camera (fixed position)
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 5, 20);
+            camera.lookAt(0, 2, 0);
+
+            // Create renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('gameContainer').appendChild(renderer.domElement);
+
+            // Create planet
+            createPlanet();
+
+            // Create player (ball on surface, stationary in view)
+            createPlayer();
+
+            // Create slime monster
+            slime = createSlime();
+            slimes.push(slime);
+
+            // Create environment on planet
+            createEnvironment();
+
+            // Add lighting
+            addLighting();
+
+            // Add stars
+            addStars();
+
+            // Event listeners
+            setupControls();
+
+            // Start game loop
+            animate();
+        }
+
+        function createPlanet() {
+            const planetGeometry = new THREE.SphereGeometry(planetRadius, 32, 32);
+            const planetMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 });
+            planet = new THREE.Mesh(planetGeometry, planetMaterial);
+            planet.receiveShadow = true;
+            scene.add(planet);
+        }
+
+        function createPlayer() {
+            const playerGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+
+            // Create custom shader material for two-hemisphere ball
+            const playerMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    time: { value: 0.0 },
+                    lightPosition: { value: new THREE.Vector3(20, 20, 10) }
+                },
+                vertexShader: `
+                        varying vec3 vPosition;
+                        varying vec3 vNormal;
+                        varying vec3 vWorldPosition;
+                        varying vec3 vWorldNormal;
+                        
+                        void main() {
+                            vPosition = position;
+                            vNormal = normal;
+                            
+                            // Calculate world position and normal for proper lighting
+                            vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                            vWorldPosition = worldPosition.xyz;
+                            vWorldNormal = normalize(normalMatrix * normal);
+                            
+                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                        }
+                    `,
+                fragmentShader: `
+                        uniform vec3 lightPosition;
+                        varying vec3 vPosition;
+                        varying vec3 vNormal;
+                        varying vec3 vWorldPosition;
+                        varying vec3 vWorldNormal;
+                        
+                        void main() {
+                            // Divide sphere into hemispheres based on Y coordinate
+                            vec3 redColor = vec3(1.0, 0.4, 0.4);
+                            vec3 yellowColor = vec3(1.0, 1.0, 0.2);
+                            
+                            // Use local Y position to determine color
+                            vec3 color = vPosition.y > 0.0 ? redColor : yellowColor;
+                            
+                            // Calculate lighting based on world-space normals and light position
+                            vec3 lightDir = normalize(lightPosition - vWorldPosition);
+                            float lightIntensity = max(dot(vWorldNormal, lightDir), 0.3);
+                            
+                            // Apply lighting that stays fixed in world space
+                            color *= lightIntensity;
+                            
+                            gl_FragColor = vec4(color, 1.0);
+                        }
+                    `
+            });
+
+            player = new THREE.Mesh(playerGeometry, playerMaterial);
+
+            // Position player 30 degrees upward on the sphere surface
+            const angle = Math.PI / 6; // 30 degrees in radians
+            const x = 0;
+            const y = (planetRadius + 0.3) * Math.sin(angle);
+            const z = (planetRadius + 0.3) * Math.cos(angle);
+
+            player.position.set(x, y, z);
+            player.castShadow = true;
+            scene.add(player);
+        }
+
+        function createEnvironment() {
+            // Create pine trees on planet surface
+            for (let i = 0; i < 40; i++) {
+                createPineTreeOnPlanet();
+            }
+
+            // Create grass patches on planet surface
+            for (let i = 0; i < 80; i++) {
+                createGrassOnPlanet();
+            }
+        }
+
+        function createPineTreeOnPlanet() {
+            const treeGroup = new THREE.Group();
+
+            // Tree trunk
+            const trunkGeometry = new THREE.CylinderGeometry(0.1, 0.15, 1, 8);
+            const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+            const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+            trunk.position.y = 0.5;
+            trunk.castShadow = true;
+            treeGroup.add(trunk);
+
+            // Pine tree layers
+            const greenShades = [0x228B22, 0x32CD32, 0x006400, 0x2E8B57, 0x3CB371];
+            const randomGreen = greenShades[Math.floor(Math.random() * greenShades.length)];
+
+            for (let i = 0; i < 3; i++) {
+                const radius = 0.8 - (i * 0.15);
+                const height = 0.8 - (i * 0.1);
+                const layerGeometry = new THREE.ConeGeometry(radius, height, 8);
+                const layerMaterial = new THREE.MeshLambertMaterial({ color: randomGreen });
+                const layer = new THREE.Mesh(layerGeometry, layerMaterial);
+                layer.position.y = 1 + (i * 0.4);
+                layer.castShadow = true;
+                treeGroup.add(layer);
+            }
+
+            // Position on planet surface
+            positionOnPlanetSurface(treeGroup);
+
+            // Store trunk collision data
+            const trunkCollision = {
+                treeGroup: treeGroup,
+                radius: 0.15 // trunk radius for collision
+            };
+            treeTrunks.push(trunkCollision);
+
+            planet.add(treeGroup);
+            trees.push(treeGroup);
+        }
+
+        function createGrassOnPlanet() {
+            const grassGroup = new THREE.Group();
+
+            // Create several grass blades in a small cluster
+            for (let i = 0; i < 3; i++) {
+                const grassGeometry = new THREE.PlaneGeometry(0.05, 0.3);
+                const grassMaterial = new THREE.MeshLambertMaterial({
+                    color: 0x32CD32,
+                    side: THREE.DoubleSide
+                });
+                const grassBlade = new THREE.Mesh(grassGeometry, grassMaterial);
+                grassBlade.position.x = (Math.random() - 0.5) * 0.2;
+                grassBlade.position.z = (Math.random() - 0.5) * 0.2;
+                grassBlade.position.y = 0.15;
+                grassBlade.rotation.y = Math.random() * Math.PI;
+                grassGroup.add(grassBlade);
+            }
+
+            // Position on planet surface
+            positionOnPlanetSurface(grassGroup);
+        }
+
+        function createSlime(spawnPosition) {
+            const slimeGroup = new THREE.Group();
+
+            // Create slime body (squished sphere)
+            const bodyGeometry = new THREE.SphereGeometry(0.4, 16, 12);
+            // Squish it vertically to make it more blob-like
+            bodyGeometry.scale(1, 0.7, 1);
+
+            // Random slime colors
+            const slimeColors = [
+                0x66cc66, // Green
+                0xcc66cc, // Purple
+                0x66cccc, // Cyan
+                0xcccc66, // Yellow
+                0xcc6666, // Red
+                0x6666cc, // Blue
+                0xcc9966, // Orange
+                0xff99cc, // Pink
+                0x99ccff  // Light blue
+            ];
+            const randomColor = slimeColors[Math.floor(Math.random() * slimeColors.length)];
+
+            const bodyMaterial = new THREE.MeshLambertMaterial({
+                color: randomColor,
+                transparent: true,
+                opacity: 0.8
+            });
+
+            const slimeBody = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            slimeBody.position.y = 0.3;
+            slimeGroup.add(slimeBody);
+
+            // Create eye container group (will be rotated to look at player)
+            const eyeContainer = new THREE.Group();
+            eyeContainer.position.y = 0.3; // Match body position
+
+            // Create eyes
+            const eyeGeometry = new THREE.SphereGeometry(0.08, 8, 8);
+            const eyeMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
+
+            // Left eye
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.15, 0.15, 0.25);
+            eyeContainer.add(leftEye);
+
+            // Right eye
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(0.15, 0.15, 0.25);
+            eyeContainer.add(rightEye);
+
+            // Eye highlights
+            const highlightGeometry = new THREE.SphereGeometry(0.03, 6, 6);
+            const highlightMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+
+            const leftHighlight = new THREE.Mesh(highlightGeometry, highlightMaterial);
+            leftHighlight.position.set(-0.13, 0.17, 0.28);
+            eyeContainer.add(leftHighlight);
+
+            const rightHighlight = new THREE.Mesh(highlightGeometry, highlightMaterial);
+            rightHighlight.position.set(0.17, 0.17, 0.28);
+            eyeContainer.add(rightHighlight);
+
+            // Add eye container to slime group
+            slimeGroup.add(eyeContainer);
+            slimeGroup.userData.eyeContainer = eyeContainer; // Store reference for animation
+            slimeGroup.userData.bounceTime = Math.random() * Math.PI * 2; // Random starting phase
+
+            // Position slime
+            if (spawnPosition) {
+                slimeGroup.position.copy(spawnPosition);
+            } else {
+                // Original random positioning for first slime
+                let slimePos;
+                do {
+                    const phi = Math.random() * Math.PI * 2;
+                    const theta = Math.acos(2 * Math.random() - 1);
+
+                    const x = planetRadius * Math.sin(theta) * Math.cos(phi);
+                    const y = planetRadius * Math.cos(theta);
+                    const z = planetRadius * Math.sin(theta) * Math.sin(phi);
+
+                    slimePos = new THREE.Vector3(x, y, z);
+                } while (slimePos.distanceTo(player.position) < 5);
+
+                slimeGroup.position.copy(slimePos);
+            }
+
+            // Orient slime to planet surface
+            const normal = slimeGroup.position.clone().normalize();
+            const up = new THREE.Vector3(0, 1, 0);
+            const quaternion = new THREE.Quaternion().setFromUnitVectors(up, normal);
+            slimeGroup.setRotationFromQuaternion(quaternion);
+
+            slimeGroup.castShadow = true;
+            planet.add(slimeGroup);
+
+            // Assign unique ID
+            slimeGroup.userData.slimeId = nextSlimeId++;
+
+            return slimeGroup;
+        }
+
+        function spawnSlimeOnBackside() {
+            if (slimes.length >= maxSlimes) return;
+
+            // The player stays at a fixed world position, but we need to find
+            // where it appears to be on the rotating planet surface
+
+            // Get player's world position
+            const playerWorldPos = new THREE.Vector3();
+            player.getWorldPosition(playerWorldPos);
+
+            // Transform player's world position to planet's local space
+            // This accounts for the planet's rotation
+            const playerOnPlanet = planet.worldToLocal(playerWorldPos.clone());
+
+            // The exact opposite point on the sphere
+            const oppositePos = playerOnPlanet.clone().multiplyScalar(-1);
+
+            // Ensure it's on the planet surface
+            const spawnPosition = oppositePos.normalize().multiplyScalar(planetRadius);
+
+            const newSlime = createSlime(spawnPosition);
+            slimes.push(newSlime);
+        }
+
+        function positionOnPlanetSurface(object) {
+            // Generate random point on sphere surface
+            const phi = Math.random() * Math.PI * 2; // longitude
+            const theta = Math.acos(2 * Math.random() - 1); // latitude (uniform distribution)
+
+            const x = planetRadius * Math.sin(theta) * Math.cos(phi);
+            const y = planetRadius * Math.cos(theta);
+            const z = planetRadius * Math.sin(theta) * Math.sin(phi);
+
+            object.position.set(x, y, z);
+
+            // Create a normal vector pointing outward from planet center
+            const normal = new THREE.Vector3(x, y, z).normalize();
+
+            // Align object's up direction with the surface normal
+            const up = new THREE.Vector3(0, 1, 0);
+            const quaternion = new THREE.Quaternion().setFromUnitVectors(up, normal);
+            object.setRotationFromQuaternion(quaternion);
+        }
+
+        function addLighting() {
+            // Ambient light
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+
+            // Directional light (sun)
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            directionalLight.position.set(20, 20, 10);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            directionalLight.shadow.camera.near = 0.5;
+            directionalLight.shadow.camera.far = 100;
+            directionalLight.shadow.camera.left = -30;
+            directionalLight.shadow.camera.right = 30;
+            directionalLight.shadow.camera.top = 30;
+            directionalLight.shadow.camera.bottom = -30;
+            scene.add(directionalLight);
+        }
+
+        function addStars() {
+            const starGeometry = new THREE.BufferGeometry();
+            const starCount = 1000;
+            const positions = new Float32Array(starCount * 3);
+
+            for (let i = 0; i < starCount * 3; i += 3) {
+                positions[i] = (Math.random() - 0.5) * 400;
+                positions[i + 1] = (Math.random() - 0.5) * 400;
+                positions[i + 2] = (Math.random() - 0.5) * 400;
+            }
+
+            starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 2 });
+            const stars = new THREE.Points(starGeometry, starMaterial);
+            scene.add(stars);
+        }
+
+        function setupControls() {
+            document.addEventListener('keydown', (event) => {
+                keys[event.code] = true;
+            });
+
+            document.addEventListener('keyup', (event) => {
+                keys[event.code] = false;
+            });
+        }
+
+        function checkCollisions() {
+            // Get player's world position
+            const playerWorldPos = new THREE.Vector3();
+            player.getWorldPosition(playerWorldPos);
+
+            let hasCollision = false;
+            let totalDeflection = new THREE.Vector2(0, 0);
+
+            // Check collision with each tree trunk
+            for (let trunk of treeTrunks) {
+                // Get trunk's world position
+                const trunkWorldPos = new THREE.Vector3();
+                trunk.treeGroup.getWorldPosition(trunkWorldPos);
+
+                // Calculate distance between player and trunk
+                const distance = playerWorldPos.distanceTo(trunkWorldPos);
+                const collisionDistance = 0.3 + trunk.radius + 0.1; // player radius + trunk radius + buffer
+
+                if (distance < collisionDistance) {
+                    hasCollision = true;
+
+                    // Calculate collision normal (direction from trunk to player)
+                    const collisionNormal = new THREE.Vector3()
+                        .subVectors(playerWorldPos, trunkWorldPos)
+                        .normalize();
+
+                    // Convert 3D collision normal to 2D movement space
+                    const deflectionX = collisionNormal.z; // Z maps to X movement
+                    const deflectionY = -collisionNormal.x; // X maps to Y movement (inverted)
+
+                    // Calculate penetration depth
+                    const penetration = collisionDistance - distance;
+                    const deflectionStrength = penetration * 0.5;
+
+                    // Add to total deflection
+                    totalDeflection.x += deflectionX * deflectionStrength;
+                    totalDeflection.y += deflectionY * deflectionStrength;
+
+                    console.log("Collision with tree trunk!");
+                }
+            }
+
+            if (hasCollision) {
+                // Apply deflection to velocity instead of stopping completely
+                const currentSpeed = Math.sqrt(currentVelocity.x * currentVelocity.x + currentVelocity.y * currentVelocity.y);
+
+                if (currentSpeed > 0) {
+                    // Calculate velocity direction
+                    const velocityDir = new THREE.Vector2(
+                        currentVelocity.x / currentSpeed,
+                        currentVelocity.y / currentSpeed
+                    );
+
+                    // Calculate deflection direction
+                    const deflectionDir = totalDeflection.clone().normalize();
+
+                    // Mix original velocity with deflection (sliding effect)
+                    const slideFactor = 0.7; // How much the ball slides vs stops
+                    const deflectionFactor = 0.3; // How much deflection is applied
+
+                    // Calculate dot product to see how much velocity aligns with deflection
+                    const alignment = velocityDir.dot(deflectionDir);
+
+                    if (alignment < 0) {
+                        // Velocity is against deflection, apply sliding physics
+                        const perpendicular = new THREE.Vector2(-velocityDir.y, velocityDir.x);
+                        const parallelComponent = perpendicular.multiplyScalar(velocityDir.dot(perpendicular));
+
+                        // Keep parallel component (sliding), deflect perpendicular component
+                        currentVelocity.x = (parallelComponent.x * slideFactor + deflectionDir.x * deflectionFactor) * currentSpeed * 0.8;
+                        currentVelocity.y = (parallelComponent.y * slideFactor + deflectionDir.y * deflectionFactor) * currentSpeed * 0.8;
+                    } else {
+                        // Velocity aligns with deflection, just apply deflection
+                        currentVelocity.x = deflectionDir.x * currentSpeed * 0.6;
+                        currentVelocity.y = deflectionDir.y * currentSpeed * 0.6;
+                    }
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        function checkSlimeCollisions() {
+            const playerWorldPos = new THREE.Vector3();
+            player.getWorldPosition(playerWorldPos);
+
+            // Get current speed
+            const currentSpeed = Math.sqrt(currentVelocity.x * currentVelocity.x + currentVelocity.y * currentVelocity.y);
+
+            for (let slimeEntity of slimes) {
+                if (!slimeEntity || slimeEntity.userData.isSquished) continue;
+
+                // Get slime world position
+                const slimeWorldPos = new THREE.Vector3();
+                slimeEntity.getWorldPosition(slimeWorldPos);
+
+                // Check distance
+                const distance = playerWorldPos.distanceTo(slimeWorldPos);
+                const collisionDistance = 0.3 + 0.4; // player radius + slime radius
+
+                if (distance < collisionDistance && currentSpeed >= squishSpeed) {
+                    // Squish the slime!
+                    squishSlime(slimeEntity);
+                }
+            }
+        }
+
+        function squishSlime(slimeEntity) {
+            slimeEntity.userData.isSquished = true;
+            slimeEntity.userData.meltProgress = 0;
+
+            // Stop the slime from moving
+            slimeEntity.userData.frozen = true;
+
+            // Increment squish counter
+            squishCount++;
+            updateSquishCounter();
+
+            // Play a squish sound effect (if you want to add one later)
+            console.log("Slime squished! Total slimes remaining: " + (slimes.length - 1));
+        }
+
+        function updateSquishCounter() {
+            const counterElement = document.getElementById('squishCounter');
+            if (counterElement) {
+                counterElement.innerHTML = `<strong>Slimes Squished: ${squishCount}</strong>`;
+
+                // Add a little animation effect when the counter updates
+                counterElement.style.transform = 'scale(1.2)';
+                setTimeout(() => {
+                    counterElement.style.transform = 'scale(1)';
+                }, 200);
+            }
+        }
+
+        function handleMovement() {
+            // Store the previous rotation for collision rollback
+            const previousRotation = {
+                x: planet.rotation.x,
+                y: planet.rotation.y,
+                z: planet.rotation.z
+            };
+
+            // Calculate acceleration based on input
+            let accelX = 0;
+            let accelY = 0;
+
+            if (keys['KeyW'] || keys['ArrowUp']) accelX += acceleration;
+            if (keys['KeyS'] || keys['ArrowDown']) accelX -= acceleration;
+            if (keys['KeyA'] || keys['ArrowLeft']) accelY += acceleration;
+            if (keys['KeyD'] || keys['ArrowRight']) accelY -= acceleration;
+
+            // Apply acceleration to velocity
+            currentVelocity.x += accelX;
+            currentVelocity.y += accelY;
+
+            // Clamp velocity to max speed
+            const speed = Math.sqrt(currentVelocity.x * currentVelocity.x + currentVelocity.y * currentVelocity.y);
+            if (speed > maxMoveSpeed) {
+                currentVelocity.x = (currentVelocity.x / speed) * maxMoveSpeed;
+                currentVelocity.y = (currentVelocity.y / speed) * maxMoveSpeed;
+            }
+
+            // Apply deceleration when no input
+            if (accelX === 0) currentVelocity.x *= deceleration;
+            if (accelY === 0) currentVelocity.y *= deceleration;
+
+            // Apply velocity to planet rotation
+            if (Math.abs(currentVelocity.x) > 0.001) {
+                planet.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), currentVelocity.x);
+            }
+            if (Math.abs(currentVelocity.y) > 0.001) {
+                planet.rotateOnWorldAxis(new THREE.Vector3(0, 1, 0), currentVelocity.y);
+            }
+
+            // Calculate ball rotation based on surface movement
+            const ballRadius = 0.3;
+            const gearRatio = planetRadius / ballRadius;
+
+            // Get the player's position on the sphere surface
+            const playerPosNormalized = player.position.clone().normalize();
+
+            // Calculate the tangent vectors at the player's position
+            const up = new THREE.Vector3(0, 1, 0);
+            const tangentRight = new THREE.Vector3().crossVectors(up, playerPosNormalized).normalize();
+            if (tangentRight.length() < 0.01) {
+                tangentRight.set(1, 0, 0);
+            }
+            const tangentForward = new THREE.Vector3().crossVectors(tangentRight, playerPosNormalized).normalize();
+
+            // Apply rotations based on movement direction
+            if (Math.abs(currentVelocity.x) > 0.001) {
+                player.rotateOnWorldAxis(tangentRight, -currentVelocity.x * gearRatio);
+            }
+            if (Math.abs(currentVelocity.y) > 0.001) {
+                player.rotateOnWorldAxis(tangentForward, currentVelocity.y * gearRatio);
+            }
+
+            // Check for collisions with trees
+            if (checkCollisions()) {
+                // Collision system handles deflection
+            }
+
+            // Check for collisions with slimes
+            checkSlimeCollisions();
+        }
+
+        function updateSlimes() {
+            slimeSpawnTimer++;
+
+            // Spawn new slimes periodically
+            if (slimeSpawnTimer >= slimeSpawnInterval) {
+                spawnSlimeOnBackside();
+                slimeSpawnTimer = 0;
+            }
+
+            // Clear the removal list
+            slimesToRemove.length = 0;
+
+            // Update all slimes
+            for (let slimeEntity of slimes) {
+                updateSingleSlime(slimeEntity);
+            }
+
+            // Remove melted slimes by ID
+            if (slimesToRemove.length > 0) {
+                for (let slimeId of slimesToRemove) {
+                    // Find the slime with this ID
+                    const index = slimes.findIndex(s => s.userData.slimeId === slimeId);
+                    if (index !== -1) {
+                        const slimeToRemove = slimes[index];
+                        planet.remove(slimeToRemove);
+
+                        // Dispose of geometries and materials
+                        slimeToRemove.traverse((child) => {
+                            if (child.geometry) child.geometry.dispose();
+                            if (child.material) child.material.dispose();
+                        });
+
+                        // Remove from array
+                        slimes.splice(index, 1);
+
+                        console.log("Removed slime. Total slimes now: " + slimes.length);
+                    }
+                }
+            }
+        }
+
+        function updateSingleSlime(slimeEntity) {
+            if (!slimeEntity) return;
+
+            // Handle melting animation for squished slimes
+            if (slimeEntity.userData.isSquished) {
+                slimeEntity.userData.meltProgress += 0.02;
+                const meltProgress = slimeEntity.userData.meltProgress;
+
+                // Get the slime body (first child)
+                const slimeBody = slimeEntity.children[0];
+
+                // Melting animation
+                if (meltProgress < 1) {
+                    // Flatten the slime
+                    const squishAmount = 1 - meltProgress;
+                    slimeBody.scale.set(
+                        1 + meltProgress * 2,  // Spread out horizontally
+                        squishAmount * 0.2,    // Flatten vertically
+                        1 + meltProgress * 2   // Spread out horizontally
+                    );
+
+                    // Move body down as it melts
+                    slimeBody.position.y = 0.3 * squishAmount;
+
+                    // Fade out
+                    slimeBody.material.opacity = 0.8 * squishAmount;
+
+                    // Hide eyes as it melts
+                    const eyeContainer = slimeEntity.userData.eyeContainer;
+                    if (eyeContainer && meltProgress > 0.3) {
+                        eyeContainer.visible = false;
+                    }
+                } else {
+                    // Mark for removal using the unique ID
+                    slimesToRemove.push(slimeEntity.userData.slimeId);
+                }
+
+                return; // Don't do normal updates for squished slimes
+            }
+
+            // Normal slime behavior (existing code)
+            slimeEntity.userData.bounceTime = (slimeEntity.userData.bounceTime || 0) + 0.1;
+
+            // Skip movement if frozen
+            if (!slimeEntity.userData.frozen) {
+                // Get player's position in planet's local coordinate system
+                const playerLocalPos = planet.worldToLocal(player.getWorldPosition(new THREE.Vector3()));
+
+                // Get slime's current local position
+                const slimeLocalPos = slimeEntity.position.clone();
+
+                // Calculate direction from slime to player in local space
+                const chaseDirection = new THREE.Vector3()
+                    .subVectors(playerLocalPos, slimeLocalPos)
+                    .normalize();
+
+                // Move slime toward player (but slowly)
+                const moveSpeed = 0.015;
+                const moveVector = chaseDirection.multiplyScalar(moveSpeed);
+
+                // Update position
+                const newPos = slimeLocalPos.add(moveVector);
+
+                // Project back onto planet surface (in local space)
+                const surfacePos = newPos.normalize().multiplyScalar(planetRadius);
+                slimeEntity.position.copy(surfacePos);
+
+                // Orient slime to surface
+                const normal = surfacePos.clone().normalize();
+                const up = new THREE.Vector3(0, 1, 0);
+                const quaternion = new THREE.Quaternion().setFromUnitVectors(up, normal);
+                slimeEntity.setRotationFromQuaternion(quaternion);
+            }
+
+            // Make eyes look at the player (existing eye tracking code)
+            const eyeContainer = slimeEntity.userData.eyeContainer;
+            if (eyeContainer && !slimeEntity.userData.frozen) {
+                // ... (rest of the eye tracking code remains the same)
+                const playerLocalPos = planet.worldToLocal(player.getWorldPosition(new THREE.Vector3()));
+                const dirToPlayer = new THREE.Vector3()
+                    .subVectors(playerLocalPos, slimeEntity.position)
+                    .normalize();
+
+                const slimeUp = slimeEntity.position.clone().normalize();
+                const verticalComponent = slimeUp.multiplyScalar(dirToPlayer.dot(slimeUp));
+                const horizontalDirection = dirToPlayer.clone().sub(verticalComponent).normalize();
+
+                const slimeForward = new THREE.Vector3(0, 0, 1);
+                const slimeRight = new THREE.Vector3(1, 0, 0);
+
+                slimeForward.applyQuaternion(slimeEntity.quaternion);
+                slimeRight.applyQuaternion(slimeEntity.quaternion);
+
+                const dot = horizontalDirection.dot(slimeForward);
+                const det = horizontalDirection.dot(slimeRight);
+                const angle = Math.atan2(det, dot);
+
+                const currentRotation = eyeContainer.rotation.y;
+                const targetRotation = angle;
+
+                let diff = targetRotation - currentRotation;
+                while (diff > Math.PI) diff -= 2 * Math.PI;
+                while (diff < -Math.PI) diff += 2 * Math.PI;
+
+                eyeContainer.rotation.y = currentRotation + diff * 0.15;
+            }
+
+            // Add bouncing animation (only if not squished)
+            if (!slimeEntity.userData.isSquished) {
+                const bounceHeight = Math.sin(slimeEntity.userData.bounceTime * 6) * 0.1 + 0.3;
+                slimeEntity.children[0].position.y = bounceHeight;
+
+                // Squish effect when bouncing
+                const squish = Math.sin(slimeEntity.userData.bounceTime * 6) * 0.1 + 1;
+                slimeEntity.children[0].scale.set(1, squish * 0.7, 1);
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            handleMovement();
+            updateSlimes(); // Changed from updateSlime()
+            renderer.render(scene, camera);
+        }
+
+        // Start the game
+        init();
+    </script>
+</body>
+
+</html>
