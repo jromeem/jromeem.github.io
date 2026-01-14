@@ -1,0 +1,291 @@
+<html>
+
+<head>
+    <style>
+        body {
+            margin: 0px;
+            padding: 0px;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            margin: 0px;
+            padding: 0px;
+            width: 2112px;
+            height: 3648px;
+            transform-origin: left center;
+            transform: scale(min(calc(100vw / 2112px), calc(100vh / 3648px)));
+        }
+
+        .container img {
+            margin: 0px;
+            padding: 0px;
+        }
+
+        .shape1 {
+            position: absolute;
+            left: 66.511px;
+            top: 75.203px;
+            width: 1198.350px;
+            height: 1538.933px;
+        }
+
+        .shape2 {
+            position: absolute;
+            left: 1112.338px;
+            top: 75.203px;
+            width: 934.026px;
+            height: 1655.733px;
+        }
+
+        .shape3 {
+            position: absolute;
+            left: 66.511px;
+            top: 1539.549px;
+            width: 1783.151px;
+            height: 850.347px;
+        }
+
+        .shape4 {
+            position: absolute;
+            left: 66.511px;
+            top: 2335.882px;
+            width: 1381.924px;
+            height: 1236.027px;
+
+        }
+
+        .shape5 {
+            position: absolute;
+            left: 875.418px;
+            top: 1991.949px;
+            width: 1170.946px;
+            height: 1579.947px;
+        }
+
+
+        .image1 {
+            position: absolute;
+            left: 66.511px;
+            top: 75.203px;
+            width: 1198.350px;
+            height: 1538.933px;
+            clip-path: url(#clip-shape1);
+        }
+
+        .image2 {
+            position: absolute;
+            left: 1112.338px;
+            top: 75.203px;
+            width: 934.026px;
+            height: 1655.733px;
+            clip-path: url(#clip-shape2);
+        }
+
+        .image3 {
+            position: absolute;
+            left: 66.511px;
+            top: 1539.549px;
+            width: 1783.151px;
+            height: 850.347px;
+            clip-path: url(#clip-shape3);
+        }
+
+        .image4 {
+            position: absolute;
+            left: 66.511px;
+            top: 2335.882px;
+            width: 1381.924px;
+            height: 1236.027px;
+            clip-path: url(#clip-shape4);
+        }
+
+        .image5 {
+            position: absolute;
+            left: 875.418px;
+            top: 1991.949px;
+            width: 1170.946px;
+            height: 1579.947px;
+            clip-path: url(#clip-shape5);
+        }
+
+        .video1 {
+            position: absolute;
+            left: 66.511px;
+            top: 75.203px;
+            width: 1198.350px;
+            height: 1538.933px;
+            object-fit: cover;
+            clip-path: url(#clip-shape1);
+        }
+
+        .video2 {
+            position: absolute;
+            left: 1112.338px;
+            top: 75.203px;
+            width: 934.026px;
+            height: 1655.733px;
+            object-fit: fill;
+            object-fit: cover;
+
+            clip-path: url(#clip-shape2);
+        }
+
+        .video3 {
+            position: absolute;
+            left: 66.511px;
+            top: 1539.549px;
+            width: 1783.151px;
+            height: 850.347px;
+            object-fit: cover;
+
+            clip-path: url(#clip-shape3);
+        }
+
+        .video4 {
+            position: absolute;
+            left: 66.511px;
+            top: 2335.882px;
+            width: 1381.924px;
+            height: 1236.027px;
+            object-fit: cover;
+
+            clip-path: url(#clip-shape4);
+        }
+
+        .video5 {
+            position: absolute;
+            left: 875.418px;
+            top: 1991.949px;
+            width: 1170.946px;
+            height: 1579.947px;
+            object-fit: cover;
+
+            clip-path: url(#clip-shape5);
+        }
+
+        .video1,
+        .video2,
+        .video3,
+        .video4,
+        .video5 {
+            cursor: pointer;
+            transition: filter 0.3s ease;
+        }
+
+        .video1:hover,
+        .video2:hover,
+        .video3:hover,
+        .video4:hover,
+        .video5:hover {
+            filter: blur(20px);
+            opacity: 80%;
+        }
+
+        svg.cutout {
+            position: absolute;
+            top: -999px;
+            left: -999px;
+            width: 0;
+            height: 0;
+        }
+
+        .file-input {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <svg class="cutout">
+        <defs>
+            <clipPath id="clip-shape1">
+                <path id="path1"
+                    d="m 0,0 c -341.37,0 -341.37,0 -341.37,-599.28 0,-436.22 0.02,-554.92 184.56,-554.92 68.98,0 163.72,16.58 293.91,39.35 478.47,83.71 478.47,83.71 341.36,599.28 C 341.37,0 341.37,0 0,0"
+                    style="fill:#211d1d;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    transform="matrix(1.3333333,0,0,-1.3333333,455.147,0)" />
+            </clipPath>
+
+            <clipPath id="clip-shape2">
+                <path id="path2"
+                    d="m 0,0 c -376.99,0 -376.99,0 -239.44,-517.22 137.55,-517.22 137.55,-517.22 370.31,-652.08 77.29,-43 130.32,-72.5 166.69,-72.5 79.45,0 79.43,140.67 79.43,588.69 C 376.99,0 376.99,0 0,0"
+                    style="fill:#211d1d;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    transform="matrix(1.3333333,0,0,-1.3333333,431.0273,0)" />
+            </clipPath>
+
+            <clipPath id="clip-shape3">
+                <path id="path3"
+                    d="m 0,0 c -86.63,0 -208.17,-21.26 -430.28,-60.12 -490.64,-85.84 -490.64,-85.84 -490.64,-267.96 0,-182.12 0,-182.12 233.19,-261.43 87.26,-29.68 141.88,-48.25 200.89,-48.25 98.69,0 209.69,51.93 506.35,190.71 474.06,221.77 474.06,221.77 257.45,347.27 C 158.42,-31.1 104.73,0 0,0"
+                    style="fill:#211d1d;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    transform="matrix(1.3333333,0,0,-1.3333333,1228.2249,0)" />
+            </clipPath>
+
+            <clipPath id="clip-shape4">
+                <path id="path1"
+                    d="m 0,0 c -82.77,0 -82.76,-98.57 -82.76,-443.81 0,-483.21 0,-483.21 573.01,-483.21 573.01,0 573.01,0 226.94,406.02 C 371.12,-114.98 371.12,-114.98 144.18,-37.8 79.38,-15.75 33.08,0 0,0"
+                    style="fill:#211d1d;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    transform="matrix(1.3333333,0,0,-1.3333333,110.9666,0)" />
+            </clipPath>
+
+            <clipPath id="clip-shape5">
+                <path id="path1"
+                    d="m 0,0 c -71.5,0 -183.98,-52.62 -363.28,-136.5 -481.18,-225.1 -481.18,-225.1 -130.28,-636.78 350.9,-411.68 350.9,-411.68 490.15,-411.68 139.25,0 139.25,0 139.25,635.4 C 124.58,-149.19 120.39,0 0,0"
+                    style="fill:#231f20;fill-opacity:1;fill-rule:nonzero;stroke:none"
+                    transform="matrix(1.3333333,0,0,-1.3333333,989.462,0)" />
+            </clipPath>
+        </defs>
+    </svg>
+
+    <div class="container">
+        <!-- <img class="shape1" src="masks/path1.svg" />
+        <img class="shape2" src="masks/path2.svg" />
+        <img class="shape3" src="masks/path3.svg" />
+        <img class="shape4" src="masks/path4.svg" />
+        <img class="shape5" src="masks/path5.svg" /> -->
+
+        <!-- <img class="image1" src="images/1.png" />
+        <img class="image2" src="images/2.png" />
+        <img class="image3" src="images/3.png" />
+        <img class="image4" src="images/4.png" />
+        <img class="image5" src="images/5.png" /> -->
+
+        <video class="video1" autoPlay loop muted src="videos/1.mp4"></video>
+        <video class="video2" autoPlay loop muted src="videos/2.mp4"></video>
+        <video class="video3" autoPlay loop muted src="videos/3.mp4"></video>
+        <video class="video4" autoPlay loop muted src="videos/4.mp4"></video>
+        <video class="video5" autoPlay loop muted src="videos/5.mp4"></video>
+
+    </div>
+
+    <input type="file" id="fileInput" class="file-input" accept="video/mp4">
+
+    <script>
+        const videos = document.querySelectorAll('.video1, .video2, .video3, .video4, .video5');
+        const fileInput = document.getElementById('fileInput');
+        let currentVideo = null;
+
+        videos.forEach(video => {
+            video.addEventListener('click', (e) => {
+                currentVideo = e.target;
+                fileInput.click();
+            });
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && currentVideo) {
+                const videoURL = URL.createObjectURL(file);
+                currentVideo.src = videoURL;
+                currentVideo.load();
+                currentVideo.play();
+            }
+            fileInput.value = '';
+        });
+    </script>
+</body>
+
+</html>
