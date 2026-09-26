@@ -1,6 +1,6 @@
 ---
 layout: post-layout.njk
-tags: ['small']
+tags: []
 title: magic
 ---
 

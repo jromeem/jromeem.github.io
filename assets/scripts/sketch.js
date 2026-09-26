@@ -23,10 +23,10 @@ function initParams() {
 }
 
 function generateGreetings() {
-  let word1 = random(["Hey", "Hi", "Hello"]);
+  let word1 = random(["hey", "hi", "hello"]);
   let word2 = random(["", " there"]);
   let punctuation = random(["!", " :)"]);
-  let lenguas = random(["こんにちは!", "Ciao!", "Hola!", "Bonjour!", "안녕하세요!"])
+  let lenguas = random(["こんにちは!", "ciao!", "hola!", "bonjour!", "안녕하세요!"])
   return random([word1+word2+punctuation, lenguas]);
 }
 
