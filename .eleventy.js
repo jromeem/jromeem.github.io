@@ -3,6 +3,7 @@ module.exports = function (eleventyConfig) {
 
   // Copy `img/` to `_site/img`
   eleventyConfig.addPassthroughCopy("assets");
+  eleventyConfig.addPassthroughCopy("media");
   eleventyConfig.addPassthroughCopy("small/ppshop/images");
   eleventyConfig.addPassthroughCopy("small/masks/videos");
 
