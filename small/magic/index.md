@@ -197,3 +197,5 @@ Example spells using the Arcane Syntax.
 ---
 
 This **Grimoire of the Arcane Lexicon** grants you mastery over reality itself. With it, your spells will become both your weapon and your shield.
+
+(2024-09-27)
